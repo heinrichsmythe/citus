@@ -13,6 +13,7 @@
 #define MULTI_COPY_H
 
 
+#include "distributed/connection_management.h"
 #include "distributed/master_metadata_utility.h"
 #include "distributed/metadata_cache.h"
 #include "nodes/execnodes.h"
@@ -96,6 +97,9 @@ typedef struct CitusCopyDestReceiver
 	HTAB *shardConnectionHash;
 	bool stopOnFailure;
 
+	/* cached data to be sent to shards */
+	HTAB *shardDataHash;
+
 	/* state on how to copy out data types */
 	CopyOutState copyOutState;
 	FmgrInfo *columnOutputFunctions;
@@ -136,6 +140,7 @@ extern Node * ProcessCopyStmt(CopyStmt *copyStatement, char *completionTag,
 							  const char *queryString);
 extern void CheckCopyPermissions(CopyStmt *copyStatement);
 extern bool IsCopyResultStmt(CopyStmt *copyStatement);
-
+extern void ExecuteCopyTask(MultiConnection *connection, CitusCopyDestReceiver *copyDest,
+							uint64 shardId, StringInfo copyData);
 
 #endif /* MULTI_COPY_H */
