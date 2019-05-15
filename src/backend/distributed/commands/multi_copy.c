@@ -2309,6 +2309,7 @@ CitusSendTupleToPlacements(TupleTableSlot *slot, CitusCopyDestReceiver *copyDest
 	bool shardDataFound = false;
 	ShardData *shardData = NULL;
 	StringInfo copyBuffer = NULL;
+	StringInfo tmp;
 
 	EState *executorState = copyDest->executorState;
 	MemoryContext executorTupleContext = GetPerTupleMemoryContext(executorState);
@@ -2374,11 +2375,14 @@ CitusSendTupleToPlacements(TupleTableSlot *slot, CitusCopyDestReceiver *copyDest
 	shardData = GetShardData(shardDataHash, shardId, &shardDataFound);
 
 	/* replicate row to shard placements */
-	copyBuffer = copyOutState->fe_msgbuf;
-	resetStringInfo(copyBuffer);
+	// copyBuffer = copyOutState->fe_msgbuf;
+	// resetStringInfo(copyBuffer);
+	tmp = copyOutState->fe_msgbuf;
+	copyOutState->fe_msgbuf = shardData->data;
 	AppendCopyRowData(columnValues, columnNulls, tupleDescriptor,
 					  copyOutState, columnOutputFunctions, columnCoercionPaths);
-	appendBinaryStringInfo(shardData->data, copyBuffer->data, copyBuffer->len);
+	copyOutState->fe_msgbuf = tmp;
+	// appendBinaryStringInfo(shardData->data, copyBuffer->data, copyBuffer->len);
 
 	if (shardData->data->len > 8 * 1024 * 1024)
 	{
@@ -3001,6 +3005,7 @@ GetShardData(HTAB *shardDataHash, int64 shardId, bool *dataFound)
 	{
 		shardData->shardId = shardId;
 		shardData->data = makeStringInfo();
+		enlargeStringInfo(shardData->data, 8 * 1024 * 1024);
 		shardData->placementList = MasterShardPlacementList(shardId);
 	}
 
