@@ -2426,7 +2426,6 @@ FlushCopyBuffersAboveThreshold(CitusCopyDestReceiver *copyDest, int threshold)
 	ListCell *shardDataCell = NULL;
 	int taskId = 1;
 	const int poolSize = DEFAULT_POOL_SIZE;
-
 	shardDataList = ShardDataList(shardDataHash);
 
 	foreach(shardDataCell, shardDataList)
@@ -2441,11 +2440,21 @@ FlushCopyBuffersAboveThreshold(CitusCopyDestReceiver *copyDest, int threshold)
 
 		task = CreateCopyTask(copyDest, shardData, taskId++);
 		taskList = lappend(taskList, task);
-
-		resetStringInfo(shardData->data);
 	}
 
 	ExecuteTaskList(CMD_UTILITY, taskList, poolSize);
+
+	foreach(shardDataCell, shardDataList)
+	{
+		ShardData *shardData = (ShardData *) lfirst(shardDataCell);
+
+		if (shardData->data->len > threshold)
+		{
+			continue;
+		}
+
+		resetStringInfo(shardData->data);
+	}
 
 }
 
